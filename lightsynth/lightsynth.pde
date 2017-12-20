@@ -11,7 +11,7 @@ ArrayList<LedPixel> ledPixels;
 
 void setup()
 {
-  size(1024,1024);
+  size(1024,800);
   initOutput(150, 4096);  //150 leds with 4096 frame of animation
   aniTimer = new SimpleTimer(100);
   viewPos = new PVector(0,0,1);
@@ -61,10 +61,10 @@ void setupLeds()
 
 
 float anim_vpos = 0;
-float anim_vspd = 0.0016;
+float anim_vspd = 0.1;
 float anim_hpos = 0;
-float anim_hspd = 0.1;
-float anim_hspr = 0.2;
+float anim_hspd = 0.0;
+float anim_hspr = 1.0;
 color fetchPixelColor(int x,int y, PImage src)
 {
     int src_idx = x + y * src.width;
@@ -109,6 +109,7 @@ void animateLeds()
 }
 int prev_mode = 0;
 int anim_mode = 0;
+int max_mode = 6;
 void draw()
 {
   /* check timer for an update */
@@ -121,19 +122,22 @@ void draw()
       switch(mode) {
         case 0:
           doBlack(output);
-        break;
+          break;
         case 1:
           doWhite(output);
-        break;
+          break;
         case 2:
           doRandomGrey(output);
-        break;
+          break;
         case 3:
           doRandomRGB(output);
-        break;
+          break;
         case 4:
           doRandomHSV(output);
-        break;
+          break;
+        case 5:
+          doPlasmaGrey(output);
+          break;
       }
       prev_mode = mode;
     }
@@ -218,6 +222,24 @@ void doRandomHSV(PImage target)
   colorMode(RGB,255);
 }
 
+float plasmaGreyParams[] = { 0.01, 0.02, 0.001, 0.002 };
+float plasmaGreyCoeffs[] = { 0.2, 0.4, 0.01, 0.02 };
+void doPlasmaGrey(PImage target)
+{
+  for(int x = 0; x < output.width; x++) {
+    for(int y = 0; y < output.height; y++) {
+      int idx = x + y * output.width;
+      float value = (sin(x * plasmaGreyParams[0]) + cos(y * plasmaGreyParams[1]) + sin(x*y * plasmaGreyParams[2]) + cos((x-width*0.75) * (y-height*0.75) * plasmaGreyParams[3]));
+      value /= 2* (plasmaGreyCoeffs[0] + plasmaGreyCoeffs[1] + plasmaGreyCoeffs[2] + plasmaGreyCoeffs[3]);
+      value += 0.5;
+      value *= 255;
+   
+      target.pixels[idx] = color(Tables.gamma_8bit[int(value)]);
+    }
+  }  
+  
+}
+
 
 void mouseWheel(MouseEvent event) 
 {
@@ -246,39 +268,56 @@ void mousePressed(MouseEvent event)
   }
 }
 
+
+float snapValue(float value)
+{
+  if(abs(value) < 0.01)
+  {
+     value = 0;  
+  } else if (abs(abs(value) - 1) < 0.01 )
+  {
+     value = round(value);
+  }
+  return value;
+}
 void keyPressed()
 {
   switch(key) {
     case' ':
-      mode = (mode+1)%5;
+      mode = (mode+1)%max_mode;
       println("mode: " + mode);
       break;
     
     case '=':
       anim_vspd += 0.01;
+      anim_vspd = snapValue(anim_vspd);
       println("anim_vspd: " + anim_vspd);
       break;
     case '-':
-      if(anim_vspd >= 0.01) anim_vspd -= 0.01;
-      else anim_vspd = 0;
+      anim_vspd -= 0.01;
+      anim_vspd = snapValue(anim_vspd);
       println("anim_vspd: " + anim_vspd);
       break;
     
     case ']':
       anim_hspd += 0.01;
+      anim_hspd = snapValue(anim_hspd);
       println("anim_hspd: " + anim_hspd);
       break;
     case '[':
       anim_hspd -= 0.01;
+      anim_hspd = snapValue(anim_hspd);
       println("anim_hspd: " + anim_hspd);
       break;
     
     case '#':
       anim_hspr += 0.01;
+      anim_hspr = snapValue(anim_hspr);
       println("anim_hspr: " + anim_hspr);
       break;
     case '\'':
       anim_hspr -= 0.01;
+      anim_hspr = snapValue(anim_hspr);
       println("anim_hspr: " + anim_hspr);
       break;
     
